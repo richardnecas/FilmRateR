@@ -1,18 +1,19 @@
 import managers.*;
 import model.Film;
+import ui.UI;
 
 import java.sql.SQLException;
 
 public class Main {
-    public static void main(String[] args) {
+    public static void main(String[] args) throws Exception {
         DirectorManager dirmng = new DirectorManager();
-        FilmManager filmmng = new FilmManager();
+        FilmManager filmng = new FilmManager();
         ActorManager actmng = new ActorManager();
         DBConnection.connect();
         try {
             dirmng.loadFromDB(DBConnection.getConn());
             actmng.loadFromDB(DBConnection.getConn());
-            filmmng.loadFromDB(DBConnection.getConn(), dirmng, actmng);
+            filmng.loadFromDB(DBConnection.getConn(), dirmng, actmng);
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
@@ -20,12 +21,13 @@ public class Main {
             DBConnection.disconnectConn();
         }
 
-
-        dirmng.addDirector("rgwea", "brqea");
+        UI ui = new UI(filmng.getFilms());
+        filmng.getFilms().add(ui.createFilm());
 
         DBConnection.connect();
         try {
             dirmng.saveToDB(DBConnection.getConn());
+            filmng.saveToDB(DBConnection.getConn());
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }

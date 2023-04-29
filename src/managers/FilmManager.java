@@ -1,14 +1,11 @@
 package managers;
 import model.*;
 
-import java.sql.Connection;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
+import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 public class FilmManager {
-    ReviewManager revmng = new ReviewManager();
+    private ReviewManager revmng = new ReviewManager();
     private List<Film> films = new ArrayList<>();
 
     public List<Film> getFilms() {
@@ -41,7 +38,38 @@ public class FilmManager {
         }
     }
 
-    private static final String selectQuery = "SELECT * FROM films ORDER BY filmName ASC";
-    private static final String insertQuery = "INSERT INTO films (filmName, director_id, isAnimated) VALUES (%s, %d, %d)";
-    private static final String updateQuery = "UPDATE films SET filmName = %s, director_id = %d, isAnimated = %d, isActual = %d WHERE id = %d";
+    public void saveToDB(Connection conn) throws SQLException{
+        for (Film dat : films){
+            if (dat.getStatus() == DBBase.BaseStatus.deleted){
+                PreparedStatement stmt = conn.prepareStatement(deleteQuery);
+                stmt.setInt(1, dat.getId());
+                stmt.executeUpdate();
+            } else if (dat.getStatus() == DBBase.BaseStatus.edited) {
+                PreparedStatement stmt = conn.prepareStatement(updateQuery);
+                stmt.setString(1, dat.getName());
+                stmt.setInt(2, dat.getDirector().getId());
+                stmt.setInt(3, dat instanceof Animated ? 1 : 0);
+                stmt.setInt(4, dat instanceof Animated ? ((Animated) dat).getRecommendedAge() : 0);
+                stmt.setInt(5, dat.getId());
+                stmt.executeUpdate();
+            } else if (dat.getStatus() == DBBase.BaseStatus.created) {
+                PreparedStatement stmt = conn.prepareStatement(insertQuery);
+                stmt.setString(1, dat.getName());
+                stmt.setInt(2, dat.getDirector().getId());
+                stmt.setInt(3, dat instanceof Animated ? 1 : 0);
+                stmt.setInt(4, dat instanceof Animated ? ((Animated) dat).getRecommendedAge() : 0);
+                stmt.executeUpdate();
+            }
+            if (dat.getStatus() != DBBase.BaseStatus.deleted){
+                revmng.reviewToDB(conn, dat.getReviews());
+            }
+        }
+    }
+
+
+
+    private static final String selectQuery = "SELECT * FROM films WHERE isDeleted = 0 ORDER BY filmName ASC";
+    private static final String insertQuery = "INSERT INTO films (filmName, director_id, isAnimated, recomendedAge) VALUES (?,?,?,?)";
+    private static final String updateQuery = "UPDATE films SET filmName = ?, director_id = ?, isAnimated = ? recomendedAge = ? WHERE id = ?";
+    private static final String deleteQuery = "UPDATE films SET isDeleted = 1 WHERE id = ?";
 }

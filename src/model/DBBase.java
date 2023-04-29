@@ -20,6 +20,8 @@ public abstract class DBBase {
     }
 
     public void setStatus(BaseStatus status) {
-        this.status = status;
+        if (this.status != BaseStatus.created || status == BaseStatus.deleted) {
+            this.status = status;
+        }
     }
 }
